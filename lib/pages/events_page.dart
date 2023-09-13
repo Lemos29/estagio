@@ -7,9 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'Perfil.dart';
 
 class EventsPage extends StatefulWidget {
-  final List<int> userParticipatingEvents;
-
-  const EventsPage({Key? key, required this.userParticipatingEvents}) : super(key: key);
+  const EventsPage();
 
   @override
   State<EventsPage> createState() => _EventsPageState();
@@ -17,27 +15,23 @@ class EventsPage extends StatefulWidget {
 
 class _EventsPageState extends State<EventsPage> {
   late Events getevents;
-
-  // for data is loaded flag
+  List<Datum> displayedEvents = [];
   bool isDataLoaded = false;
-
-  String imageUrl = "https://inideia.services/public/";
-
-  // error holding
+  String imageUrl = "http://10.0.2.2:8000";
   String errorMessage = '';
+  late SharedPreferences sharedPreferences;
+  TextEditingController searchController = TextEditingController();
 
- late SharedPreferences sharedPreferences;
-
-  // API Call
   Future<Events> getDataFromAPI() async {
     sharedPreferences = await SharedPreferences.getInstance();
-    Uri uri = Uri.parse('https://inideia.services/public/api/events');
+    Uri uri = Uri.parse('http://10.0.2.2:8000/api/events');
     var response = await http.get(uri);
     if (response.statusCode == 200) {
-      // All ok
       Events getevents = geteventsFromJson(response.body);
       setState(() {
         isDataLoaded = true;
+        getevents.data.shuffle();
+        displayedEvents = getevents.data;
       });
       return getevents;
     } else {
@@ -50,6 +44,16 @@ class _EventsPageState extends State<EventsPage> {
     getevents = await getDataFromAPI();
   }
 
+  void _showNotification() async {
+    Uri uri = Uri.parse('http://10.0.2.2:8000/api/notifications');
+    var response = await http.get(uri);
+    if (response.statusCode == 200) {
+      Fluttertoast.showToast(msg: response.body, gravity: ToastGravity.TOP_RIGHT);
+    } else {
+      Fluttertoast.showToast(msg: 'Failed to fetch notifications.');
+    }
+  }
+
   @override
   void initState() {
     callAPIandAssignData();
@@ -57,19 +61,78 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  void filterEvents(String searchTerm) {
+    if (searchTerm.isEmpty) {
+
+      setState(() {
+        displayedEvents = getevents.data;
+      });
+    } else {
+
+      List<Datum> filteredEvents = getevents.data
+          .where((event) => event.nome.toLowerCase().contains(searchTerm.toLowerCase()))
+          .toList();
+      setState(() {
+        displayedEvents = filteredEvents;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bilhete digital'),
+        title: const Text('Event World'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              // Abrir caixa de diálogo de pesquisa
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text('Search Events'),
+                    content: TextField(
+                      controller: searchController,
+                      onChanged: filterEvents, // Chamar a função de filtro sempre que o texto mudar
+                      decoration: InputDecoration(
+                        hintText: 'Enter event name',
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          filterEvents(searchController.text);
+                        },
+                        child: Text('Search'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.notifications),
+            onPressed: _showNotification,
+          ),
+        ],
       ),
       body: isDataLoaded
           ? errorMessage.isNotEmpty
           ? Text(errorMessage)
-          : getevents.data.isEmpty
+          : displayedEvents.isEmpty
           ? const Text('No Data')
           : ListView.builder(
-        itemCount: getevents.data.length,
+        itemCount: displayedEvents.length,
         itemBuilder: (context, index) => getRow(index),
       )
           : const Center(
@@ -96,7 +159,7 @@ class _EventsPageState extends State<EventsPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EventsPage(userParticipatingEvents: []),
+                    builder: (context) => EventsPage(),
                   ),
                 );
               },
@@ -107,7 +170,10 @@ class _EventsPageState extends State<EventsPage> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ProfilePage(login: '',),
+                  MaterialPageRoute(
+                    builder: (context) => ProfilePage(
+                      login: '',
+                    ),
                   ),
                 );
               },
@@ -119,86 +185,52 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   Widget getRow(int index) {
-    final evento = getevents.data[index];
-    bool isParticipating = widget.userParticipatingEvents.contains(evento.id);
-
     return Card(
-      child: Container(
-        padding: const EdgeInsets.all(7.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  child: Image.network(
-                    imageUrl + getevents.data[index].imagem,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        getevents.data[index].nome,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text('events: ${getevents.data[index].nome}'),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        sharedPreferences.setInt("evento_id", evento.id);
-                        if (isParticipating) {
-                          Fluttertoast.showToast(msg: 'Já está a participar do evento');
-                        } else {
-                          setState(() {
-                            widget.userParticipatingEvents.add(evento.id);
-                          });
-                          // Enviar a lista atualizada para o backend
-                          updateUserParticipatingEvents(widget.userParticipatingEvents);
-                          Fluttertoast.showToast(msg: 'Participando do evento');
-
-                          // Navigating to the event page
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ParticipatePage(eventId: evento.id),
-                            ),
-                          );
-                        }
-                      },
-                      child: Text('Participar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isParticipating ? Colors.green : Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+      child: InkWell(
+        onTap: () {
+          sharedPreferences.setInt("event_id", displayedEvents[index].id);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ParticipatePage(),
             ),
-            if (isParticipating)
-              Container(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'Já está a participar do evento',
-                  style: const TextStyle(color: Colors.black),
-                ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(7.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    child: Image.network(
+                      imageUrl + displayedEvents[index].imagem,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayedEvents[index].nome,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text('events: ${displayedEvents[index].nome}'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-
-  void updateUserParticipatingEvents(List<int> userParticipatingEvents) {}
 }

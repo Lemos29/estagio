@@ -39,6 +39,7 @@ class Data {
   final String qrcode;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String pin;
 
   Data({
     required this.id,
@@ -50,6 +51,7 @@ class Data {
     required this.qrcode,
     required this.createdAt,
     required this.updatedAt,
+    required this.pin
   });
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
@@ -62,6 +64,7 @@ class Data {
     qrcode: json["qrcode"],
     createdAt: DateTime.parse(json["created_at"]),
     updatedAt: DateTime.parse(json["updated_at"]),
+    pin: json["pin"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -74,5 +77,6 @@ class Data {
     "qrcode": qrcode,
     "created_at": createdAt.toIso8601String(),
     "updated_at": updatedAt.toIso8601String(),
+    "pin":pin,
   };
 }

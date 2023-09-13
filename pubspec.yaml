@@ -22,19 +22,22 @@ environment:
   sdk: '>=2.17.0 <3.0.0'
 
 dependencies:
-  cached_network_image: ^3.1.0
   flutter:
     sdk: flutter
+  cached_network_image: ^3.1.0
+  camera: ^0.8.1+7
+  mobile_scanner: ^1.0.0
+  flutter_barcode_scanner: ^2.0.0
+  pin_code_fields: ^7.0.0
   cupertino_icons: ^1.0.3
   http: ^0.13.4
   fluttertoast: ^8.0.8
+  intl: ^0.17.0
+  shared_preferences: ^2.0.8
 
 dev_dependencies:
-  shared_preferences : any
   flutter_test:
     sdk: flutter
 
-
 flutter:
   uses-material-design: true
-

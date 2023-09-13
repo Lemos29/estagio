@@ -34,7 +34,7 @@ class Data {
   final String name;
   final String email;
   final dynamic emailVerifiedAt;
-  final String nTelemovel;
+  final int nTelemovel;
   final DateTime dataNascimento;
   final String genero;
   final dynamic avatar;

@@ -1,8 +1,9 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:projeto_estagio_login/pages/events_page.dart';
+import 'package:projeto_estagio_login/pages/pages/ResetPassword.dart';
+import 'package:projeto_estagio_login/pages/register_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,12 +16,35 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+  bool isBlocked = false;
+  int loginAttempts = 0;
 
-
-    login(String email, String password) async {
+  login(String email, String password) async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     try {
-      var url = Uri.parse('https://inideia.services/public/api/login');
+      if (isBlocked) {
+        // Sistema bloqueado
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Bloqueado'),
+              content: Text('Você foi bloqueado. Tente novamente mais tarde.'),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Fechar'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
+
+      var url = Uri.parse('http://10.0.2.2:8000/api/login');
 
       var body = jsonEncode({
         'email': email,
@@ -29,7 +53,6 @@ class _LoginPageState extends State<LoginPage> {
 
       var headers = {
         'Content-Type': 'application/json',
-        // Add any additional headers required, such as an authentication token
       };
 
       var response = await http.post(
@@ -46,18 +69,34 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => EventsPage(userParticipatingEvents: [userId]),
+            builder: (context) => EventsPage(),
           ),
         );
       } else {
         print('Failed with status code: ${response.statusCode}');
         print('Response body: ${response.body}');
+        loginAttempts++;
+
+        if (loginAttempts >= 3) {
+          // Bloquear o sistema por 1 minuto
+          setState(() {
+            isBlocked = true;
+          });
+          Future.delayed(Duration(minutes: 1), () {
+            setState(() {
+              isBlocked = false;
+              loginAttempts = 0;
+            });
+          });
+        }
+
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
               title: Text('Erro de login'),
-              content: Text('Falha ao fazer login. Verifique seu email e senha.'),
+              content: Text(
+                  'Falha ao fazer login. Verifique seu email e senha.'),
               actions: <Widget>[
                 TextButton(
                   child: Text('Fechar'),
@@ -75,55 +114,76 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void updateUserParticipatingEvents(List<int> events) {
-    // Implement your code to update the user's participating events on the backend
-    // Make an HTTP request to your backend API and send the updated events data
-    // Handle the response or any errors that occur during the request
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bilhete digital'),
+        title: const Text('Event World'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextFormField(
-              controller: emailController,
-              decoration: InputDecoration(
-                hintText: 'Email',
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  hintText: 'Email',
+                ),
               ),
-            ),
-            SizedBox(height: 20),
-            TextFormField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: 'Password',
+              SizedBox(height: 20),
+              TextFormField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: 'Password',
+                ),
               ),
-            ),
-            SizedBox(height: 40),
-            GestureDetector(
-              onTap: () {
-                login(emailController.text.toString(), passwordController.text.toString());
+              SizedBox(height: 40),
+              GestureDetector(
+                onTap: () {
+                  login(emailController.text.toString(),
+                      passwordController.text.toString());
+                },
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text('Login'),
+                  ),
+                ),
+              ),
+              SizedBox(height: 10),
+              TextButton(
+                onPressed: () {
+                Navigator.push(
+                context,
+                MaterialPageRoute(
+                builder: (context) => ResetPasswordPage(),
+                ),
+                );
               },
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Text('Login'),
-                ),
+                child: Text('Recuperar Senha'),
               ),
-            ),
-          ],
+              SizedBox(height: 10),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RegistrationPage(),
+                    ),
+                  );
+                },
+                child: Text('Ainda não tem conta?'),
+              ),
+            ],
+          ),
         ),
       ),
     );

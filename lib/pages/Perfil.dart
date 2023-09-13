@@ -18,14 +18,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool isDataLoaded = false;
   String errorMessage = '';
+  late SharedPreferences sharedPreferences;
 
   Future<User> getDataFromAPI() async {
-    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+    sharedPreferences = await SharedPreferences.getInstance();
     final userId = sharedPreferences.getInt("user_id");
-    final url = 'https://inideia.services/public/api/user/$userId';
+    final url = 'http://10.0.2.2:8000/api/users/$userId';
     print(url);
-    final response = await http.get(Uri.parse(url));
+    var response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
+      print(response.body);
       setState(() {
         userProfile = userFromJson(response.body);
         isDataLoaded = true;
@@ -44,10 +46,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void logout() async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-    // Realizar as ações necessárias para terminar a sessão do usuário
-    // Exemplo: limpar os dados de autenticação
-    // ...
-    // Navegar para a tela de login
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
@@ -79,7 +77,14 @@ class _ProfilePageState extends State<ProfilePage> {
                           title: Text('Terminar sessão'),
                           onTap: () {
                             logout();
-                            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                            Navigator.pushNamedAndRemoveUntil(context, '/Login', (route) => false);
+                          },
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.payment),
+                          title: Text('Ver Pagamentos'),
+                          onTap: () {
+                            Navigator.pushNamedAndRemoveUntil(context, '/PaymentsMade', (route) => false);
                           },
                         ),
                       ],
@@ -127,7 +132,7 @@ class _ProfilePageState extends State<ProfilePage> {
             SizedBox(height: 24),
             ListTile(
               leading: Icon(Icons.phone),
-              title: Text(userProfile.data.nTelemovel),
+              title: Text(userProfile.data.nTelemovel.toString()),
             ),
             ListTile(
               leading: Icon(Icons.person),
@@ -167,7 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EventsPage(userParticipatingEvents: []),
+                    builder: (context) => EventsPage(),
                   ),
                 );
               },

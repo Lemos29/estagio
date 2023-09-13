@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:projeto_estagio_login/pages/Enter_page.dart';
 import 'package:projeto_estagio_login/pages/Payments.dart';
 import 'package:projeto_estagio_login/pages/Perfil.dart';
+import 'package:projeto_estagio_login/pages/pages/ResetPassword.dart';
+import 'package:projeto_estagio_login/pages/pages/paymentsmade.dart';
+import 'package:projeto_estagio_login/pages/register_page.dart';
 import 'pages/Participate.dart';
 import 'pages/login_page.dart';
 import 'pages/events_page.dart';
@@ -23,13 +27,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: "/Events",
+      initialRoute: "/Login",
       routes: {
+        '/Register':(context)=>RegistrationPage(),
         '/Login': (context) => LoginPage(),
-        "/Events": (context) =>  EventsPage(userParticipatingEvents: [],),
-        "/Participate": (context) => ParticipatePage(eventId: null,),
+        "/Events": (context) =>  EventsPage(),
+        "/Participate": (context) => ParticipatePage(),
         "/Profile": (context) => ProfilePage(login: '',),
-        "/Payments":(context) =>PaymentsPage(Paymentid: null,),
+        "/Payments":(context) =>PaymentsPage(),
+        "/Enter":(context)=>QRCodePage(),
+        "/PaymentsMade":(context)=>PaymentsMade(),
+        "/Reset":(context)=>ResetPasswordPage(),
       },
     );
   }
